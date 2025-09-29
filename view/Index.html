@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Agua Inteligente - SACMEX</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i>💧</i>
+                <h1>Sistema de Gestión de Agua Inteligente</h1>
+            </div>
+            <div class="user-info">
+                <span>Operador: Juan Pérez</span>
+                <button class="btn btn-primary">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <aside class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item active" data-view="dashboard">
+                    <i>📊</i>
+                    <span>Dashboard</span>
+                </li>
+                <li class="nav-item" data-view="map">
+                    <i>🗺️</i>
+                    <span>Mapa de Medidores</span>
+                </li>
+                <li class="nav-item" data-view="alerts">
+                    <i>⚠️</i>
+                    <span>Alertas</span>
+                </li>
+                <li class="nav-item" data-view="customers">
+                    <i>👥</i>
+                    <span>Clientes</span>
+                </li>
+                <li class="nav-item" data-view="reports">
+                    <i>📈</i>
+                    <span>Reportes</span>
+                </li>
+                <li class="nav-item" data-view="settings">
+                    <i>⚙️</i>
+                    <span>Configuración</span>
+                </li>
+            </ul>
+        </aside>
+
+        <main>
+            <!-- Vista Dashboard -->
+            <div class="view active" id="dashboard-view">
+                <div class="dashboard-header">
+                    <h2 class="dashboard-title">Panel de Control Principal</h2>
+                    <div class="filter-controls">
+                        <select class="filter-select" id="zone-filter">
+                            <option value="all">Todas las zonas</option>
+                            <option value="north">Zona Norte</option>
+                            <option value="south">Zona Sur</option>
+                            <option value="east">Zona Oriente</option>
+                            <option value="west">Zona Poniente</option>
+                        </select>
+                        <select class="filter-select" id="alert-filter">
+                            <option value="all">Todas las alertas</option>
+                            <option value="critical">Críticas</option>
+                            <option value="high">Altas</option>
+                            <option value="medium">Medias</option>
+                            <option value="low">Bajas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="stats-cards">
+                    <div class="stat-card card-critical">
+                        <span class="stat-label">Alertas Críticas</span>
+                        <span class="stat-value">12</span>
+                        <span class="stat-detail">Requieren acción inmediata</span>
+                    </div>
+                    <div class="stat-card card-warning">
+                        <span class="stat-label">Alertas Altas</span>
+                        <span class="stat-value">24</span>
+                        <span class="stat-detail">Revisión prioritaria</span>
+                    </div>
+                    <div class="stat-card card-info">
+                        <span class="stat-label">Medidores Activos</span>
+                        <span class="stat-value">1,247</span>
+                        <span class="stat-detail">De 1,350 totales</span>
+                    </div>
+                    <div class="stat-card card-normal">
+                        <span class="stat-label">Cortes Activos</span>
+                        <span class="stat-value">8</span>
+                        <span class="stat-detail">Por fugas o consumo excesivo</span>
+                    </div>
+                </div>
+
+                <div class="map-container">
+                    <div id="dashboard-map"></div>
+                    <div class="map-controls">
+                        <button class="btn btn-primary" id="refresh-map">Actualizar</button>
+                    </div>
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: var(--danger-color);"></div>
+                            <span>Alerta Crítica</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: var(--warning-color);"></div>
+                            <span>Alerta Alta</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: var(--secondary-color);"></div>
+                            <span>Alerta Media</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: var(--success-color);"></div>
+                            <span>Normal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alerts-container">
+                    <div class="section-header">
+                        <h3 class="section-title">Alertas Recientes</h3>
+                        <button class="btn btn-primary" id="refresh-alerts">Actualizar</button>
+                    </div>
+                    <div class="alerts-list" id="alerts-list">
+                        <!-- Las alertas se cargarán aquí dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista Mapa -->
+            <div class="view" id="map-view">
+                <div class="dashboard-header">
+                    <h2 class="dashboard-title">Mapa de Medidores y Alertas</h2>
+                    <div class="filter-controls">
+                        <select class="filter-select" id="map-zone-filter">
+                            <option value="all">Todas las zonas</option>
+                            <option value="north">Zona Norte</option>
+                            <option value="south">Zona Sur</option>
+                            <option value="east">Zona Oriente</option>
+                            <option value="west">Zona Poniente</option>
+                        </select>
+                        <select class="filter-select" id="map-alert-filter">
+                            <option value="all">Todos los estados</option>
+                            <option value="critical">Solo críticos</option>
+                            <option value="high">Solo altos</option>
+                            <option value="normal">Solo normales</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="map-container">
+                    <div id="main-map"></div>
+                    <div class="map-controls">
+                        <button class="btn btn-primary" id="refresh-main-map">Actualizar</button>
+                        <button class="btn btn-success" id="export-map">Exportar</button>
+                    </div>
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: var(--danger-color);"></div>
+                            <span>Alerta Crítica</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: var(--warning-color);"></div>
+                            <span>Alerta Alta</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: var(--secondary-color);"></div>
+                            <span>Alerta Media</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: var(--success-color);"></div>
+                            <span>Normal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-cards">
+                    <div class="stat-card card-info">
+                        <span class="stat-label">Medidores en Vista</span>
+                        <span class="stat-value" id="meters-in-view">42</span>
+                        <span class="stat-detail">De 1,350 totales</span>
+                    </div>
+                    <div class="stat-card card-warning">
+                        <span class="stat-label">Alertas en Vista</span>
+                        <span class="stat-value" id="alerts-in-view">7</span>
+                        <span class="stat-detail">Requieren atención</span>
+                    </div>
+                    <div class="stat-card card-critical">
+                        <span class="stat-label">Consumo Promedio</span>
+                        <span class="stat-value" id="avg-consumption">245</span>
+                        <span class="stat-detail">Litros por día</span>
+                    </div>
+                    <div class="stat-card card-normal">
+                        <span class="stat-label">Fugas Detectadas</span>
+                        <span class="stat-value" id="leaks-detected">3</span>
+                        <span class="stat-detail">En esta zona</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista Alertas -->
+            <div class="view" id="alerts-view">
+                <div class="dashboard-header">
+                    <h2 class="dashboard-title">Gestión de Alertas</h2>
+                    <div class="filter-controls">
+                        <input type="text" class="search-input" placeholder="Buscar alerta...">
+                        <select class="filter-select" id="alerts-type-filter">
+                            <option value="all">Todos los tipos</option>
+                            <option value="leak">Fugas</option>
+                            <option value="consumption">Consumo</option>
+                            <option value="meter">Medidor</option>
+                            <option value="other">Otros</option>
+                        </select>
+                        <select class="filter-select" id="alerts-status-filter">
+                            <option value="all">Todos los estados</option>
+                            <option value="pending">Pendientes</option>
+                            <option value="in-progress">En Progreso</option>
+                            <option value="resolved">Resueltas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="alerts-container">
+                    <div class="section-header">
+                        <h3 class="section-title">Todas las Alertas</h3>
+                        <button class="btn btn-primary" id="export-alerts">Exportar</button>
+                    </div>
+                    <div class="alerts-list" id="all-alerts-list">
+                        <!-- Todas las alertas se cargarán aquí -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista Clientes -->
+            <div class="view" id="customers-view">
+                <div class="dashboard-header">
+                    <h2 class="dashboard-title">Gestión de Clientes</h2>
+                    <div class="filter-controls">
+                        <input type="text" class="search-input" placeholder="Buscar cliente...">
+                        <select class="filter-select" id="customers-status-filter">
+                            <option value="all">Todos los estados</option>
+                            <option value="active">Activos</option>
+                            <option value="inactive">Inactivos</option>
+                            <option value="warning">Con alertas</option>
+                        </select>
+                        <select class="filter-select" id="customers-zone-filter">
+                            <option value="all">Todas las zonas</option>
+                            <option value="north">Zona Norte</option>
+                            <option value="south">Zona Sur</option>
+                            <option value="east">Zona Oriente</option>
+                            <option value="west">Zona Poniente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="customers-container">
+                    <div class="section-header">
+                        <h3 class="section-title">Lista de Clientes</h3>
+                        <button class="btn btn-primary" id="add-customer">Agregar Cliente</button>
+                    </div>
+                    <div class="customers-list" id="customers-list">
+                        <!-- Los clientes se cargarán aquí -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista Reportes -->
+            <div class="view" id="reports-view">
+                <div class="dashboard-header">
+                    <h2 class="dashboard-title">Reportes y Análisis</h2>
+                    <div class="filter-controls">
+                        <select class="filter-select" id="report-type">
+                            <option value="consumption">Consumo</option>
+                            <option value="leaks">Fugas</option>
+                            <option value="alerts">Alertas</option>
+                            <option value="financial">Financiero</option>
+                        </select>
+                        <select class="filter-select" id="report-period">
+                            <option value="week">Última semana</option>
+                            <option value="month">Último mes</option>
+                            <option value="quarter">Último trimestre</option>
+                            <option value="year">Último año</option>
+                        </select>
+                        <button class="btn btn-primary" id="generate-report">Generar Reporte</button>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3>Consumo por Zona</h3>
+                        <div class="chart-placeholder">
+                            Gráfico de consumo por zona
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Tipos de Alertas</h3>
+                        <div class="chart-placeholder">
+                            Gráfico de tipos de alertas
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Evolución de Fugas</h3>
+                        <div class="chart-placeholder">
+                            Gráfico de evolución de fugas
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Comparativa Mensual</h3>
+                        <div class="chart-placeholder">
+                            Gráfico comparativo mensual
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reports-container">
+                    <div class="section-header">
+                        <h3 class="section-title">Reportes Generados</h3>
+                        <button class="btn btn-primary" id="new-report">Nuevo Reporte</button>
+                    </div>
+                    <div class="reports-list" id="reports-list">
+                        <!-- Los reportes se cargarán aquí -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista Configuración -->
+            <div class="view" id="settings-view">
+                <div class="dashboard-header">
+                    <h2 class="dashboard-title">Configuración del Sistema</h2>
+                </div>
+
+                <div class="alerts-container">
+                    <div class="section-header">
+                        <h3 class="section-title">Parámetros del Sistema</h3>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Umbral para Alerta de Fuga (L/min)</label>
+                            <input type="number" class="form-control" value="15">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Umbral para Consumo Inusual (%)</label>
+                            <input type="number" class="form-control" value="150">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tiempo entre lecturas (minutos)</label>
+                            <input type="number" class="form-control" value="15">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notificaciones por correo</label>
+                            <select class="form-select">
+                                <option value="enabled">Activadas</option>
+                                <option value="disabled">Desactivadas</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Zona horaria</label>
+                            <select class="form-select">
+                                <option value="central">Centro (CDMX)</option>
+                                <option value="pacific">Pacífico</option>
+                                <option value="northeast">Noreste</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Confirmación de Corte -->
+    <div class="modal" id="cutoff-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmar Corte de Suministro</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Está a punto de cortar el suministro de agua a:</p>
+                <div class="form-group">
+                    <strong id="cutoff-address">Cargando dirección...</strong>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cutoff-reason">Justificación del corte:</label>
+                    <select class="form-select" id="cutoff-reason">
+                        <option value="">Seleccione una razón</option>
+                        <option value="fuga-masiva">Fuga Masiva - Cliente Incontactable</option>
+                        <option value="consumo-excesivo">Consumo Excesivo Persistente</option>
+                        <option value="restriccion-sequia">Restricción por Sequía</option>
+                        <option value="falta-pago">Falta de Pago Reiterada</option>
+                        <option value="solicitud-usuario">Solicitud del Usuario</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cutoff-notes">Notas adicionales:</label>
+                    <textarea class="form-control" id="cutoff-notes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="cancel-cutoff">Cancelar</button>
+                <button class="btn btn-danger" id="confirm-cutoff">Confirmar Corte</button>
+            </div>
+        </div>
+    </div>
+    <script src="/scripts/app.js"></script>
+</body>
